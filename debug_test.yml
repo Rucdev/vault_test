@@ -1,0 +1,8 @@
+---
+- hosts: sample
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Debug test vars
+      ansible.builtin.debug:
+        msg: "{{ test_password }}"
