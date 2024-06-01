@@ -1,0 +1,38 @@
+---
+- name: Encrypt vars file
+  hosts: localhost
+  gather_facts: false
+  vars:
+    file_name: inventory/group_vars/sample/vault.yml
+  tasks:
+    # 暗号化されたvarsファイルをtmp_varsとして読みだしておく
+    - name: Read vars file
+      ansible.builtin.include_vars:
+        file: "{{ file_name }}"
+        name: tmp_vars
+
+    # vaultパスワードが間違っている場合にタスクを失敗させるため一度debugする
+    - name: Debug tmp_vars
+      ansible.builtin.debug:
+        var: tmp_vars
+
+    # 暗号化する前のファイルを削除する
+    - name: Delete vars file
+      ansible.builtin.file:
+        path: "{{ file_name }}"
+        state: absent
+
+    # varsファイルの内容を全て消す
+    - name: Create vars file
+      ansible.builtin.lineinfile:
+        path: "{{ file_name }}"
+        line: ""
+        create: true
+        mode: "0644"
+
+    # 暗号化した変数を書き込む
+    - name: Write encrypted vars
+      ansible.builtin.lineinfile:
+        path: "{{ file_name }}"
+        line: "{{ item.key }}: {{ item.value }}"
+      loop: "{{ tmp_vars | dict2items }}"
