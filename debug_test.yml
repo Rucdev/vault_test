@@ -1,5 +1,5 @@
 ---
-- hosts: sample
+- hosts: test_group
   connection: local
   gather_facts: false
   tasks:

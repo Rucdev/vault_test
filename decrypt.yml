@@ -14,7 +14,8 @@
     # vaultパスワードが間違っている場合にタスクを失敗させるため一度debugする
     - name: Debug tmp_vars
       ansible.builtin.debug:
-        var: tmp_vars
+        var: item.key
+      loop: "{{ tmp_vars | dict2items }}"
 
     # 暗号化する前のファイルを削除する
     - name: Delete vars file
@@ -36,3 +37,5 @@
         path: "{{ file_name }}"
         line: "{{ item.key }}: {{ item.value }}"
       loop: "{{ tmp_vars | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"

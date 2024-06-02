@@ -2,25 +2,20 @@
 - name: Encrypt vars file
   hosts: localhost
   gather_facts: false
+  vars:
+    password_file: vault_password
+    vars_file: inventory/group_vars/sample/vault.yml
   tasks:
-    # 一時的なパスワードファイルを作成
-    - name: Create pass file
-      ansible.builtin.lineinfile:
-        path: tmp_pass
-        line: "{{ vault_pass }}"
-        create: true
-        mode: "0600"
-
     # 暗号化するvarsファイルをtmp_varsとして読みだしておく
     - name: Read vars file
       ansible.builtin.include_vars:
-        file: inventory/group_vars/sample/vault.yml
+        file: "{{ vars_file }}"
         name: tmp_vars
 
     # 読みだしたtmp_varsを一つずつ暗号化する
     - name: Encrypt string
       ansible.builtin.command:
-        cmd: ansible-vault encrypt_string {{ item.value }} --vault-password-file tmp_pass --name {{ item.key }}
+        cmd: ansible-vault encrypt_string {{ item.value }} --vault-password-file {{ password_file }} --name {{ item.key }}
       register: res_encrypt
       changed_when: true
       loop: "{{ tmp_vars | dict2items }}"
@@ -30,13 +25,13 @@
     # 暗号化する前のファイルを削除する
     - name: Delete vars file
       ansible.builtin.file:
-        path: "{{ file_name }}"
+        path: "{{ vars_file }}"
         state: absent
 
     # varsファイルの内容を全て消す
-    - name: Create vars file
+    - name: Reset vars file
       ansible.builtin.lineinfile:
-        path: "{{ file_name }}"
+        path: "{{ vars_file }}"
         line: ""
         create: true
         mode: "0644"
@@ -44,16 +39,8 @@
     # 暗号化した変数を書き込むj;w
     - name: Write encrypted vars
       ansible.builtin.lineinfile:
-        path: "{{ file_name }}"
-        line: "{{ tmp_item.stdout }}"
+        path: "{{ vars_file }}"
+        line: "{{ item.stdout }}"
       loop: "{{ res_encrypt.results }}"
       loop_control:
-        loop_var: tmp_item
         label: "{{ tmp_item.stdout.split(':') | first }}"
-
-    # vaultパスワードファイルを削除する
-    - name: Delete pass file
-      ansible.builtin.file:
-        path: tmp_pass
-        state: absent
-
